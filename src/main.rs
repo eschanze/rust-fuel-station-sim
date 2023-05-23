@@ -6,6 +6,7 @@ mod event;
 use customer::{Customer, PaymentMethod};
 use event::Event;
 
+use std::env;
 use rand::Rng;
 use rand::seq::SliceRandom;
 
@@ -197,6 +198,18 @@ fn departure_routine(
 }
 
 fn main() {
+
+    let arg = env::args().nth(1);
+    let steps = if let Some(arg) = arg {
+        if let Ok(arg_as_int) = arg.parse::<i32>() {
+            arg_as_int
+        } else {
+            100
+        }   
+    } else {
+        100
+    };
+
     let mut event_queue = EventQueue::new();
     let mut sim_time = 0.0;
     let mut customer_count = 0;
@@ -209,7 +222,7 @@ fn main() {
     println!("{:<8} | {:<10} | {:<8} | {:<4} | {:<10}", "TIEMPO", "EVENTO", "CLIENTE", "COLA", "ESTADO COLA");
 
     let sec = timeit_loops!(1, {
-        for _i in 0..1000{
+        for _i in 0..steps {
             match time_routine(&mut event_queue, &mut sim_time) {
                 Some(mut e) => {
                     match e.id {
