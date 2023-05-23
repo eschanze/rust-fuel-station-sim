@@ -209,10 +209,9 @@ fn main() {
     println!("{:<8} | {:<10} | {:<8} | {:<4} | {:<10}", "TIEMPO", "EVENTO", "CLIENTE", "COLA", "ESTADO COLA");
 
     let sec = timeit_loops!(1, {
-        for _i in 0..50_000_000{
+        for _i in 0..1000{
             match time_routine(&mut event_queue, &mut sim_time) {
                 Some(mut e) => {
-                    e.pretty_print();
                     match e.id {
                         0 => {
                             arrive_routine(&mut event_queue, &mut sim_time, &mut e, &mut customer_count);
@@ -233,7 +232,7 @@ fn main() {
                             todo!();
                         }
                     }
-                    //println!("{:<8} | {}", e.pretty_print(), format_customer_queues(&customer_queues));
+                    println!("{:<8} | {}", e.pretty_print(), format_customer_queues(&customer_queues));
                 },
                 None => {
                     todo!();
