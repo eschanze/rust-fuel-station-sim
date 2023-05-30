@@ -234,7 +234,7 @@ fn main() {
     let mut fuel_stations = [0, 0, 0, 0];
     let mut customer_queues: Vec<Vec<Customer>> = vec![Vec::new(); 4];
 
-    let mut steps = Vec::new();
+    let mut steps: Vec<(f64, f64)> = Vec::new();
     let mut tiempo_tarjeta = Vec::new();
     let mut tiempo_efectivo = Vec::new();
     let mut tiempo_app = Vec::new();
@@ -263,18 +263,9 @@ fn main() {
                         4 => {
                             departure_routine(&mut event_queue, &mut sim_time, &mut e, &mut fuel_stations, &mut customer_queues);
                             match e.customer.payment_method {
-                                PaymentMethod::Efectivo => {
-                                    steps.push(sim_time);
-                                    tiempo_tarjeta.push(e.customer.total_time);
-                                },
-                                PaymentMethod::Tarjeta => {
-                                    steps.push(sim_time);
-                                    tiempo_tarjeta.push(e.customer.total_time);
-                                },
-                                PaymentMethod::CopecApp => {
-                                    steps.push(sim_time);
-                                    tiempo_tarjeta.push(e.customer.total_time);
-                                }
+                                PaymentMethod::Efectivo => tiempo_efectivo.push((sim_time, e.customer.total_time)),
+                                PaymentMethod::Tarjeta => tiempo_tarjeta.push((sim_time, e.customer.total_time)),
+                                PaymentMethod::CopecApp => tiempo_app.push((sim_time, e.customer.total_time))
                             }
                         }
                         _ => {
@@ -292,9 +283,12 @@ fn main() {
     });
     println!("Simulación terminada en {} segs.", sec);
     let mut plot = Plot::new();
-    let trace_tarjeta = Scatter::new(steps.clone(), tiempo_tarjeta).name("Tarjeta").mode(Mode::Markers);
-    let trace_efectivo = Scatter::new(steps.clone(), tiempo_efectivo).name("Efectivo").mode(Mode::Markers);
-    let trace_app = Scatter::new(steps.clone(), tiempo_app).name("Muevo App").mode(Mode::Markers);
+    let (t_x_values, t_y_values): (Vec<f64>, Vec<f64>) = tiempo_tarjeta.into_iter().unzip();
+    let trace_tarjeta = Scatter::new(t_x_values, t_y_values).name("Tarjeta").mode(Mode::Markers);
+    let (e_x_values, e_y_values): (Vec<f64>, Vec<f64>) = tiempo_efectivo.into_iter().unzip();
+    let trace_efectivo = Scatter::new(e_x_values, e_y_values).name("Efectivo").mode(Mode::Markers);
+    let (a_x_values, a_y_values): (Vec<f64>, Vec<f64>) = tiempo_app.into_iter().unzip();
+    let trace_app = Scatter::new(a_x_values, a_y_values).name("Muevo App").mode(Mode::Markers);
     plot.add_trace(trace_tarjeta);
     plot.add_trace(trace_efectivo);
     plot.add_trace(trace_app);
