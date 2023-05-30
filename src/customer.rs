@@ -12,14 +12,16 @@ pub struct Customer {
 #[derive(Clone, Debug, PartialEq)]
 pub enum PaymentMethod {
     Efectivo,
-    Tarjeta
+    Tarjeta,
+    CopecApp
 }
 
 impl fmt::Display for PaymentMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let string_representation = match self {
             PaymentMethod::Efectivo => "EFECTIVO",
-            PaymentMethod::Tarjeta => "TARJETA"
+            PaymentMethod::Tarjeta => "TARJETA",
+            PaymentMethod::CopecApp => "APP"
         };
         write!(f, "{}", string_representation.to_uppercase())
     }
@@ -30,6 +32,7 @@ impl Customer {
         let payment_methods = [
             PaymentMethod::Efectivo,
             PaymentMethod::Tarjeta,
+            PaymentMethod::CopecApp
         ];
 
         let rng = rand::thread_rng().gen_range(0..payment_methods.len());

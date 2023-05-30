@@ -10,6 +10,22 @@ use std::env;
 use rand::Rng;
 use rand::seq::SliceRandom;
 
+use plotly::*;
+use plotly::common::Mode;
+
+#[allow(unused_macros)]
+macro_rules! cumulative_sum {
+    ($a_vec:expr) => {{
+        let mut cumsum = Vec::new();
+        let mut acc = 0.0;
+        for x in $a_vec {
+            acc += x;
+            cumsum.push(acc);
+        }
+        cumsum
+    }};
+}
+
 struct EventQueue {
     q: Vec<Event>,
 }
@@ -119,7 +135,7 @@ fn arrive_routine(
     customer_count: &mut u64
 ) {
     *customer_count += 1;
-    let customer_frequency: f64 = rand::thread_rng().gen_range(5.0..=15.0);
+    let customer_frequency: f64 = rand::thread_rng().gen_range(15.0..=45.0);
 
     let queue_event = Event::new(1, e.customer.clone(), *sim_time, None);
     event_queue.add(queue_event);
@@ -167,7 +183,8 @@ fn payment_routine(
     let payment_time: f64; 
     match e.customer.payment_method {
         PaymentMethod::Efectivo => payment_time = rand::thread_rng().gen_range(40.0..=60.0),
-        PaymentMethod::Tarjeta => payment_time = rand::thread_rng().gen_range(20.0..=30.0)
+        PaymentMethod::Tarjeta => payment_time = rand::thread_rng().gen_range(20.0..=30.0),
+        PaymentMethod::CopecApp => payment_time = rand::thread_rng().gen_range(10.0..=20.0)
     }
 
     let departure_event = Event::new(4, e.customer.clone(), *sim_time + payment_time, e.chosen_queue);
@@ -200,7 +217,7 @@ fn departure_routine(
 fn main() {
 
     let arg = env::args().nth(1);
-    let steps = if let Some(arg) = arg {
+    let arg_steps = if let Some(arg) = arg {
         if let Ok(arg_as_int) = arg.parse::<i32>() {
             arg_as_int
         } else {
@@ -217,12 +234,17 @@ fn main() {
     let mut fuel_stations = [0, 0, 0, 0];
     let mut customer_queues: Vec<Vec<Customer>> = vec![Vec::new(); 4];
 
+    let mut steps = Vec::new();
+    let mut tiempo_tarjeta = Vec::new();
+    let mut tiempo_efectivo = Vec::new();
+    let mut tiempo_app = Vec::new();
+
     let initial_event = Event::new(0, Customer::new(0, 0.0), 0.0, None);
     event_queue.add(initial_event);
     println!("{:<8} | {:<10} | {:<8} | {:<4} | {:<10}", "TIEMPO", "EVENTO", "CLIENTE", "COLA", "ESTADO COLA");
 
     let sec = timeit_loops!(1, {
-        for _i in 0..steps {
+        for _i in 0..arg_steps {
             match time_routine(&mut event_queue, &mut sim_time) {
                 Some(mut e) => {
                     match e.id {
@@ -240,12 +262,27 @@ fn main() {
                         }
                         4 => {
                             departure_routine(&mut event_queue, &mut sim_time, &mut e, &mut fuel_stations, &mut customer_queues);
+                            match e.customer.payment_method {
+                                PaymentMethod::Efectivo => {
+                                    steps.push(sim_time);
+                                    tiempo_tarjeta.push(e.customer.total_time);
+                                },
+                                PaymentMethod::Tarjeta => {
+                                    steps.push(sim_time);
+                                    tiempo_tarjeta.push(e.customer.total_time);
+                                },
+                                PaymentMethod::CopecApp => {
+                                    steps.push(sim_time);
+                                    tiempo_tarjeta.push(e.customer.total_time);
+                                }
+                            }
                         }
                         _ => {
                             todo!();
                         }
                     }
                     println!("{:<8} | {}", e.pretty_print(), format_customer_queues(&customer_queues));
+                    
                 },
                 None => {
                     todo!();
@@ -254,4 +291,12 @@ fn main() {
         }
     });
     println!("Simulación terminada en {} segs.", sec);
+    let mut plot = Plot::new();
+    let trace_tarjeta = Scatter::new(steps.clone(), tiempo_tarjeta).name("Tarjeta").mode(Mode::Markers);
+    let trace_efectivo = Scatter::new(steps.clone(), tiempo_efectivo).name("Efectivo").mode(Mode::Markers);
+    let trace_app = Scatter::new(steps.clone(), tiempo_app).name("Muevo App").mode(Mode::Markers);
+    plot.add_trace(trace_tarjeta);
+    plot.add_trace(trace_efectivo);
+    plot.add_trace(trace_app);
+    plot.show();
 }
