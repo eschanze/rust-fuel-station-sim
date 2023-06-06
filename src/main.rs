@@ -9,6 +9,7 @@ use event::Event;
 use std::env;
 use rand::Rng;
 use rand::seq::SliceRandom;
+use rand_distr::{Normal, Distribution};
 
 use plotly::*;
 use plotly::common::Mode;
@@ -214,19 +215,7 @@ fn departure_routine(
     ); */
 }
 
-fn main() {
-
-    let arg = env::args().nth(1);
-    let arg_steps = if let Some(arg) = arg {
-        if let Ok(arg_as_int) = arg.parse::<i32>() {
-            arg_as_int
-        } else {
-            100
-        }   
-    } else {
-        100
-    };
-
+fn simulation(steps: i32) {
     let mut event_queue = EventQueue::new();
     let mut sim_time = 0.0;
     let mut customer_count = 0;
@@ -234,17 +223,13 @@ fn main() {
     let mut fuel_stations = [0, 0, 0, 0];
     let mut customer_queues: Vec<Vec<Customer>> = vec![Vec::new(); 4];
 
-    let mut steps: Vec<(f64, f64)> = Vec::new();
-    let mut tiempo_tarjeta = Vec::new();
-    let mut tiempo_efectivo = Vec::new();
-    let mut tiempo_app = Vec::new();
-
     let initial_event = Event::new(0, Customer::new(0, 0.0), 0.0, None);
     event_queue.add(initial_event);
     println!("{:<8} | {:<10} | {:<8} | {:<4} | {:<10}", "TIEMPO", "EVENTO", "CLIENTE", "COLA", "ESTADO COLA");
 
     let sec = timeit_loops!(1, {
-        for _i in 0..arg_steps {
+        //for _i in 0..steps {
+        while sim_time < 43200.0 {
             match time_routine(&mut event_queue, &mut sim_time) {
                 Some(mut e) => {
                     match e.id {
@@ -262,11 +247,6 @@ fn main() {
                         }
                         4 => {
                             departure_routine(&mut event_queue, &mut sim_time, &mut e, &mut fuel_stations, &mut customer_queues);
-                            match e.customer.payment_method {
-                                PaymentMethod::Efectivo => tiempo_efectivo.push((sim_time, e.customer.total_time)),
-                                PaymentMethod::Tarjeta => tiempo_tarjeta.push((sim_time, e.customer.total_time)),
-                                PaymentMethod::CopecApp => tiempo_app.push((sim_time, e.customer.total_time))
-                            }
                         }
                         _ => {
                             todo!();
@@ -282,15 +262,21 @@ fn main() {
         }
     });
     println!("Simulación terminada en {} segs.", sec);
-    let mut plot = Plot::new();
-    let (t_x_values, t_y_values): (Vec<f64>, Vec<f64>) = tiempo_tarjeta.into_iter().unzip();
-    let trace_tarjeta = Scatter::new(t_x_values, t_y_values).name("Tarjeta").mode(Mode::Markers);
-    let (e_x_values, e_y_values): (Vec<f64>, Vec<f64>) = tiempo_efectivo.into_iter().unzip();
-    let trace_efectivo = Scatter::new(e_x_values, e_y_values).name("Efectivo").mode(Mode::Markers);
-    let (a_x_values, a_y_values): (Vec<f64>, Vec<f64>) = tiempo_app.into_iter().unzip();
-    let trace_app = Scatter::new(a_x_values, a_y_values).name("Muevo App").mode(Mode::Markers);
-    plot.add_trace(trace_tarjeta);
-    plot.add_trace(trace_efectivo);
-    plot.add_trace(trace_app);
-    plot.show();
+}
+
+fn main() {
+
+    let arg = env::args().nth(1);
+    let arg_steps = if let Some(arg) = arg {
+        if let Ok(arg_as_int) = arg.parse::<i32>() {
+            arg_as_int
+        } else {
+            100
+        }   
+    } else {
+        100
+    };
+    simulation(arg_steps);
+
+
 }
