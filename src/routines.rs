@@ -4,7 +4,9 @@ use crate::{Customer, PaymentMethod};
 
 use rand::seq::SliceRandom;
 use rand::Rng;
-//use rand_distr::{Distribution, Normal};
+use rand_distr::Exp;
+use rand_distr::{Normal, Distribution};
+use std::collections::HashMap;
 //use std::env;
 
 #[allow(unused_macros)]
@@ -92,6 +94,57 @@ pub fn process_customer_queues(
     None
 }
 
+fn normalize(x: f64) -> f64 {
+    ((x * 60.0) % 1440.0) / 1440.0
+}
+
+fn beta_distr(x: f64) -> f64 {
+    let numerator = x.powf(7.0) * (1.0 - x).powf(5.075);
+    let denominator = 0.0000908345394559;
+    numerator / denominator + 2.0
+}
+
+fn update_value(
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>,
+    id: u64,
+    index: usize,
+    value: f64,
+) -> Result<(), String> {
+    if let Some(tuple) = customer_data.get_mut(&id) {
+        match index {
+            0 => tuple.0 = value as u8,
+            1 => tuple.1 = value,
+            2 => tuple.2 = value,
+            3 => tuple.3 = value,
+            _ => {
+                return Err(String::from("Invalid index"));
+            }
+        }
+    } else {
+        return Err(String::from("ID not found in the HashMap"));
+    }
+    
+    Ok(())
+}
+
+fn get_value(
+    customer_data: &HashMap<u64, (u8, f64, f64, f64)>,
+    id: u64,
+    index: usize,
+) -> Result<f64, String> {
+    if let Some(tuple) = customer_data.get(&id) {
+        match index {
+            0 => Ok(tuple.0 as f64),
+            1 => Ok(tuple.1),
+            2 => Ok(tuple.2),
+            3 => Ok(tuple.3),
+            _ => Err(String::from("Invalid index")),
+        }
+    } else {
+        Err(String::from("ID not found in the HashMap"))
+    }
+}
+
 // Desc: Routines for the simulation used in main.rs
 pub fn time_routine(event_queue: &mut EventQueue, clock: &mut f64) -> Option<Event> {
     if !event_queue.q.is_empty() {
@@ -108,15 +161,25 @@ pub fn arrive_routine(
     sim_time: &mut f64,
     e: &mut Event,
     customer_count: &mut u64,
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
 ) {
     *customer_count += 1;
-    let customer_frequency: f64 = rand::thread_rng().gen_range(15.0..=45.0);
+    let arrival_rate = beta_distr(normalize(*sim_time));
+    let exp_distr = Exp::new(1.0 / arrival_rate).unwrap();
+    let next_arrival_time = rand::thread_rng().sample(exp_distr);
 
     let queue_event = Event::new(1, e.customer.clone(), *sim_time, None);
+
+    match e.customer.payment_method {
+        PaymentMethod::Efectivo => customer_data.insert(e.customer.id, (0, *sim_time, 0.0, 0.0)),
+        PaymentMethod::Tarjeta => customer_data.insert(e.customer.id, (1, *sim_time, 0.0, 0.0)),
+        PaymentMethod::CopecApp => customer_data.insert(e.customer.id, (2, *sim_time, 0.0, 0.0))
+    };
+
     event_queue.add(queue_event);
 
-    let new_customer = Customer::new(*customer_count, *sim_time + customer_frequency);
-    let new_event = Event::new(0, new_customer, *sim_time + customer_frequency, None);
+    let new_customer = Customer::new(*customer_count, *sim_time + next_arrival_time);
+    let new_event = Event::new(0, new_customer, *sim_time + next_arrival_time, None);
     event_queue.add(new_event);
 }
 
@@ -126,6 +189,7 @@ pub fn queue_routine(
     e: &mut Event,
     fuel_stations: &mut [i64],
     customer_queues: &mut Vec<Vec<Customer>>,
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
 ) {
     let (available_station, idx) = any_available(&fuel_stations);
     if available_station {
@@ -137,11 +201,13 @@ pub fn queue_routine(
     } else {
         let queue_index = get_shortest_or_random_index(customer_queues);
         customer_queues[queue_index].push(e.customer.clone());
+        let _ = update_value(customer_data, e.customer.id, 2, *sim_time);
     }
 }
 
 pub fn refuel_routine(event_queue: &mut EventQueue, sim_time: &mut f64, e: &mut Event) {
-    let refuel_time: f64 = 120.0;
+    let normal = Normal::new(2.0, 0.15).unwrap();
+    let refuel_time: f64 = normal.sample(&mut rand::thread_rng());
     let payment_event = Event::new(
         3,
         e.customer.clone(),
@@ -154,9 +220,9 @@ pub fn refuel_routine(event_queue: &mut EventQueue, sim_time: &mut f64, e: &mut 
 pub fn payment_routine(event_queue: &mut EventQueue, sim_time: &mut f64, e: &mut Event) {
     let payment_time: f64;
     match e.customer.payment_method {
-        PaymentMethod::Efectivo => payment_time = rand::thread_rng().gen_range(40.0..=60.0),
-        PaymentMethod::Tarjeta => payment_time = rand::thread_rng().gen_range(20.0..=30.0),
-        PaymentMethod::CopecApp => payment_time = rand::thread_rng().gen_range(10.0..=20.0),
+        PaymentMethod::Efectivo => payment_time = Normal::new(0.875, 0.1).unwrap().sample(&mut rand::thread_rng()),
+        PaymentMethod::Tarjeta => payment_time = Normal::new(0.425, 0.075).unwrap().sample(&mut rand::thread_rng()),
+        PaymentMethod::CopecApp => payment_time = Normal::new(0.275, 0.055).unwrap().sample(&mut rand::thread_rng()),
     }
 
     let departure_event = Event::new(
@@ -174,13 +240,16 @@ pub fn departure_routine(
     e: &mut Event,
     fuel_stations: &mut [i64],
     customer_queues: &mut Vec<Vec<Customer>>,
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
 ) {
     e.customer.total_time = *sim_time - e.customer.arrive_time;
+    let _ = update_value(customer_data, e.customer.id, 3, *sim_time - e.customer.arrive_time);
     if let Some(queue) = e.chosen_queue {
         fuel_stations[queue as usize] = 0;
         if let Some(customer) = process_customer_queues(customer_queues, queue as usize) {
             let refuel_event = Event::new(2, customer, *sim_time, Some(queue));
             event_queue.add(refuel_event);
+            let _ = update_value(customer_data, e.customer.id, 2, *sim_time - e.customer.arrive_time);
         }
     }
     /* println!(

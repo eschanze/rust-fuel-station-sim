@@ -32,12 +32,29 @@ impl Event {
             None => "-".to_string(),
         };
 
+        let scheduled_time_format = format_time(self.scheduled_time);
+
         format!(
-            "{:<8.2} | {:<10} | {:<8} | {:<4}",
-            self.scheduled_time,
+            //{:<8.2} for self.scheduled_time
+            "{:<8} | {:<10} | {:<8} | {:<4}",
+            scheduled_time_format,
             event_type,
             self.customer.id,
             chosen_queue_str
         )
     }
+}
+
+fn format_time(minutes: f64) -> String {
+    let hours = (4.0 + (minutes / 60.0)) % 12.0;
+    let is_pm = hours >= 12.0;
+    let formatted_hours = if hours == 0.0 || hours == 12.0 {
+        12
+    } else {
+        (hours % 12.0) as u32
+    };
+    let formatted_minutes = (minutes % 60.0) as u32;
+
+    let am_pm = if is_pm { "PM" } else { "AM" };
+    format!("{:02}:{:02} {}", formatted_hours, formatted_minutes, am_pm)
 }
