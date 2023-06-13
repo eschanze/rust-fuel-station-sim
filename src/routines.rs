@@ -5,7 +5,7 @@ use crate::{Customer, PaymentMethod};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use rand_distr::Exp;
-use rand_distr::{Normal, Distribution};
+use rand_distr::{Distribution, Normal};
 use std::collections::HashMap;
 //use std::env;
 
@@ -99,14 +99,14 @@ fn normalize(minutes: u16) -> f64 {
     let range_max = 1440;
     let target_min = 0.0;
     let target_max = 1.0;
-    
+
     let clamped_minutes = minutes % (range_max + 1); // Wrap around the value if it exceeds range_max
-    
+
     let normalized = (clamped_minutes - range_min) as f64 / (range_max - range_min) as f64;
-    
+
     // Adjust the normalized value to match the desired range
     let adjusted_normalized = (normalized - target_min) / (target_max - target_min);
-    
+
     adjusted_normalized
 }
 
@@ -135,26 +135,8 @@ fn update_value(
     } else {
         return Err(String::from("ID not found in the HashMap"));
     }
-    
-    Ok(())
-}
 
-fn get_value(
-    customer_data: &HashMap<u64, (u8, f64, f64, f64)>,
-    id: u64,
-    index: usize,
-) -> Result<f64, String> {
-    if let Some(tuple) = customer_data.get(&id) {
-        match index {
-            0 => Ok(tuple.0 as f64),
-            1 => Ok(tuple.1),
-            2 => Ok(tuple.2),
-            3 => Ok(tuple.3),
-            _ => Err(String::from("Invalid index")),
-        }
-    } else {
-        Err(String::from("ID not found in the HashMap"))
-    }
+    Ok(())
 }
 
 // Desc: Routines for the simulation used in main.rs
@@ -173,7 +155,7 @@ pub fn arrive_routine(
     sim_time: &mut f64,
     e: &mut Event,
     customer_count: &mut u64,
-    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>,
 ) {
     *customer_count += 1;
     let arrival_rate = beta_distr(normalize(*sim_time as u16));
@@ -188,7 +170,7 @@ pub fn arrive_routine(
     match e.customer.payment_method {
         PaymentMethod::Efectivo => customer_data.insert(e.customer.id, (0, *sim_time, 0.0, 0.0)),
         PaymentMethod::Tarjeta => customer_data.insert(e.customer.id, (1, *sim_time, 0.0, 0.0)),
-        PaymentMethod::CopecApp => customer_data.insert(e.customer.id, (2, *sim_time, 0.0, 0.0))
+        PaymentMethod::CopecApp => customer_data.insert(e.customer.id, (2, *sim_time, 0.0, 0.0)),
     };
 
     event_queue.add(queue_event);
@@ -204,7 +186,7 @@ pub fn queue_routine(
     e: &mut Event,
     fuel_stations: &mut [i64],
     customer_queues: &mut Vec<Vec<Customer>>,
-    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>,
 ) {
     let (available_station, idx) = any_available(&fuel_stations);
     if available_station {
@@ -235,9 +217,21 @@ pub fn refuel_routine(event_queue: &mut EventQueue, sim_time: &mut f64, e: &mut 
 pub fn payment_routine(event_queue: &mut EventQueue, sim_time: &mut f64, e: &mut Event) {
     let payment_time: f64;
     match e.customer.payment_method {
-        PaymentMethod::Efectivo => payment_time = Normal::new(0.875, 0.1).unwrap().sample(&mut rand::thread_rng()),
-        PaymentMethod::Tarjeta => payment_time = Normal::new(0.425, 0.075).unwrap().sample(&mut rand::thread_rng()),
-        PaymentMethod::CopecApp => payment_time = Normal::new(0.275, 0.055).unwrap().sample(&mut rand::thread_rng()),
+        PaymentMethod::Efectivo => {
+            payment_time = Normal::new(0.875, 0.1)
+                .unwrap()
+                .sample(&mut rand::thread_rng())
+        }
+        PaymentMethod::Tarjeta => {
+            payment_time = Normal::new(0.425, 0.075)
+                .unwrap()
+                .sample(&mut rand::thread_rng())
+        }
+        PaymentMethod::CopecApp => {
+            payment_time = Normal::new(0.275, 0.055)
+                .unwrap()
+                .sample(&mut rand::thread_rng())
+        }
     }
 
     let departure_event = Event::new(
@@ -255,16 +249,26 @@ pub fn departure_routine(
     e: &mut Event,
     fuel_stations: &mut [i64],
     customer_queues: &mut Vec<Vec<Customer>>,
-    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>,
 ) {
     e.customer.total_time = *sim_time - e.customer.arrive_time;
-    let _ = update_value(customer_data, e.customer.id, 3, *sim_time - e.customer.arrive_time);
+    let _ = update_value(
+        customer_data,
+        e.customer.id,
+        3,
+        *sim_time - e.customer.arrive_time,
+    );
     if let Some(queue) = e.chosen_queue {
         fuel_stations[queue as usize] = 0;
         if let Some(customer) = process_customer_queues(customer_queues, queue as usize) {
             let refuel_event = Event::new(2, customer.clone(), *sim_time, Some(queue));
             event_queue.add(refuel_event);
-            let _ = update_value(customer_data, customer.id, 2, *sim_time - customer.arrive_time);
+            let _ = update_value(
+                customer_data,
+                customer.id,
+                2,
+                *sim_time - customer.arrive_time,
+            );
         }
     }
     /* println!(

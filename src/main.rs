@@ -4,27 +4,22 @@ extern crate timeit;
 mod customer;
 mod event;
 mod eventqueue;
+mod graphs;
 mod routines;
 use customer::{Customer, PaymentMethod};
 use event::Event;
 use eventqueue::EventQueue;
+use graphs::*;
 use routines::*;
 
-use ordered_float::OrderedFloat;
-use std::{env, time};
+//use ordered_float::OrderedFloat;
+use std::{collections::HashMap, env};
 
-use plotly::{
-    color::{NamedColor, Rgb, Rgba},
-    common::{
-        ColorScale, ColorScalePalette, DashType, Fill, Font, Line, LineShape, Marker, Mode,
-        Orientation, Title,
-    },
-    layout::{Axis, BarMode, Layout, Legend, TicksDirection, TraceOrder},
-    sankey::{Line as SankeyLine, Link, Node},
-    Bar, Plot, Sankey, Scatter, ScatterPolar,
-};
-
-fn simulation(_steps: i32, customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>, fuel_station_length: usize) {
+fn simulation(
+    _steps: i32,
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>,
+    fuel_station_length: usize,
+) {
     let mut event_queue = EventQueue::new();
     let mut sim_time = 0.0;
     let mut customer_count = 0;
@@ -50,7 +45,7 @@ fn simulation(_steps: i32, customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
                                 &mut sim_time,
                                 &mut e,
                                 &mut customer_count,
-                                customer_data
+                                customer_data,
                             );
                         }
                         1 => {
@@ -60,7 +55,7 @@ fn simulation(_steps: i32, customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
                                 &mut e,
                                 &mut fuel_stations,
                                 &mut customer_queues,
-                                customer_data
+                                customer_data,
                             );
                         }
                         2 => {
@@ -76,7 +71,7 @@ fn simulation(_steps: i32, customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
                                 &mut e,
                                 &mut fuel_stations,
                                 &mut customer_queues,
-                                customer_data
+                                customer_data,
                             );
                         }
                         _ => {
@@ -98,7 +93,6 @@ fn simulation(_steps: i32, customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
     println!("Simulación terminada en {} segs.", sec);
 }
 
-use std::collections::HashMap;
 fn main() {
     let arg = env::args().nth(1);
     let arg_steps = if let Some(arg) = arg {
@@ -115,51 +109,17 @@ fn main() {
     // Esto es ID: (Método de pago, tiempo de llegada (dentro de la simulación), tiempo esperando en cola, tiempo total de atención al momento de salir)
     let mut customer_data: HashMap<u64, (u8, f64, f64, f64)> = HashMap::new();
     simulation(arg_steps, &mut customer_data, 4);
-    /*if let Some(max) = customer_data.keys().max() {
-        for i in 0..=*max {
-            if let Some(tuple) = customer_data.get(&i) {
-                println!("ID: {}, Value: {:?}", i, tuple);
-            }
-        }
-    }*/
 
-    /*let mut averages: HashMap<u8, f64> = HashMap::new();
-    let mut counts: HashMap<u8, usize> = HashMap::new();
-    
-    // Iterate over the customer_data HashMap
-    for (_, &(payment_method, _, _, last_element)) in customer_data.iter() {
-        // Update the sum and count for the payment method
-        let sum = averages.entry(payment_method).or_insert(0.0);
-        let count = counts.entry(payment_method).or_insert(0);
-    
-        *sum += last_element;
-        *count += 1;
-    }
-    
-    // Print the averages for each payment method
-    for (payment_method, sum) in averages.iter() {
-        let count = *counts.get(payment_method).unwrap();
-        let average = sum / (count as f64);
-        println!("Payment Method {}: Average = {}", payment_method, average);
-    } */
+    let mut customer_data_5s: HashMap<u64, (u8, f64, f64, f64)> = HashMap::new();
+    simulation(arg_steps, &mut customer_data_5s, 5);
 
-    let mut time_values: Vec<f64> = Vec::new();
-    let mut avg_values: Vec<f64> = Vec::new();
+    // Gráficos
+    // Gráfico de tiempo promedio por método de pago
+    payment_method_avg_time(&mut customer_data);
 
-    let mut wait_time_sum: f64 = 0.0;
-    let mut count: f64 = 0.0;
+    // tiempo promedio con 4 vs 5 estaciones
+    four_vs_five_stations(&mut customer_data, &mut customer_data_5s);
 
-    for (_, &(_, time, wait_time, _)) in customer_data.iter() {
-        wait_time_sum += wait_time;
-        count += 1.0;
-
-        time_values.push(time);
-        avg_values.push(wait_time_sum / count);
-    }
-
-    let trace = Scatter::new(time_values, avg_values).mode(Mode::Markers);
-    let mut plot = Plot::new();
-    plot.add_trace(trace);
-    plot.write_html("out.html");
-
+    // promedio de tiempo de espera en cola por dia
+    queue_avg_waittime(&mut customer_data);
 }
