@@ -378,6 +378,7 @@ dependencies = [
 name = "kitten_sim"
 version = "0.1.0"
 dependencies = [
+ "ordered-float",
  "plotly",
  "rand",
  "rand_distr",
@@ -464,6 +465,15 @@ name = "once_cell"
 version = "1.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9670a07f94779e00908f3e686eab508878ebb390ba6e604d3a284c00e8d0487b"
+
+[[package]]
+name = "ordered-float"
+version = "3.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fc2dbde8f8a79f2102cc474ceb0ad68e3b80b85289ea62389b60e66777e4213"
+dependencies = [
+ "num-traits",
+]
 
 [[package]]
 name = "percent-encoding"

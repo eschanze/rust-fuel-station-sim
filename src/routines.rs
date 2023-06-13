@@ -262,9 +262,9 @@ pub fn departure_routine(
     if let Some(queue) = e.chosen_queue {
         fuel_stations[queue as usize] = 0;
         if let Some(customer) = process_customer_queues(customer_queues, queue as usize) {
-            let refuel_event = Event::new(2, customer, *sim_time, Some(queue));
+            let refuel_event = Event::new(2, customer.clone(), *sim_time, Some(queue));
             event_queue.add(refuel_event);
-            let _ = update_value(customer_data, e.customer.id, 2, *sim_time - e.customer.arrive_time);
+            let _ = update_value(customer_data, customer.id, 2, *sim_time - customer.arrive_time);
         }
     }
     /* println!(
