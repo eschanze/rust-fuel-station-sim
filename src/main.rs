@@ -105,11 +105,11 @@ fn main() {
     // Esto es ID: (Método de pago, tiempo de llegada (dentro de la simulación), tiempo esperando en cola, tiempo total de atención al momento de salir)
     let mut customer_data: HashMap<u64, (u8, f64, f64, f64)> = HashMap::new();
     simulation(arg_steps, &mut customer_data);
-    if let Some(max) = customer_data.keys().max() {
+    /*if let Some(max) = customer_data.keys().max() {
         for i in 0..=*max {
             if let Some(tuple) = customer_data.get(&i) {
                 println!("ID: {}, Value: {:?}", i, tuple);
             }
         }
-    }
+    }*/
 }

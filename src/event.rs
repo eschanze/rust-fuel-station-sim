@@ -46,7 +46,7 @@ impl Event {
 }
 
 fn format_time(minutes: f64) -> String {
-    let hours = (4.0 + (minutes / 60.0)) % 12.0;
+    let hours = (4.0 + (minutes / 60.0)) % 24.0;
     let is_pm = hours >= 12.0;
     let formatted_hours = if hours == 0.0 || hours == 12.0 {
         12

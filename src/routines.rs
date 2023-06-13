@@ -94,14 +94,26 @@ pub fn process_customer_queues(
     None
 }
 
-fn normalize(x: f64) -> f64 {
-    ((x * 60.0) % 1440.0) / 1440.0
+fn normalize(minutes: u16) -> f64 {
+    let range_min = 0;
+    let range_max = 1440;
+    let target_min = 0.0;
+    let target_max = 1.0;
+    
+    let clamped_minutes = minutes % (range_max + 1); // Wrap around the value if it exceeds range_max
+    
+    let normalized = (clamped_minutes - range_min) as f64 / (range_max - range_min) as f64;
+    
+    // Adjust the normalized value to match the desired range
+    let adjusted_normalized = (normalized - target_min) / (target_max - target_min);
+    
+    adjusted_normalized
 }
 
 fn beta_distr(x: f64) -> f64 {
     let numerator = x.powf(7.0) * (1.0 - x).powf(5.075);
     let denominator = 0.0000908345394559;
-    numerator / denominator + 2.0
+    numerator / denominator + 4.0
 }
 
 fn update_value(
@@ -164,9 +176,12 @@ pub fn arrive_routine(
     customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>
 ) {
     *customer_count += 1;
-    let arrival_rate = beta_distr(normalize(*sim_time));
-    let exp_distr = Exp::new(1.0 / arrival_rate).unwrap();
+    let arrival_rate = beta_distr(normalize(*sim_time as u16));
+    let exp_distr = Exp::new(10.0 / arrival_rate).unwrap();
     let next_arrival_time = rand::thread_rng().sample(exp_distr);
+
+    println!("Current arrival rate {} -> {}", *sim_time, arrival_rate);
+    println!("Next arrival in {}", next_arrival_time);
 
     let queue_event = Event::new(1, e.customer.clone(), *sim_time, None);
 
