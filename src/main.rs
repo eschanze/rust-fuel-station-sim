@@ -78,11 +78,11 @@ fn simulation(
                             todo!();
                         }
                     }
-                    /*println!(
+                    println!(
                         "{:<8} | {}",
                         e.pretty_print(),
                         format_customer_queues(&customer_queues)
-                    );*/
+                    );
                 }
                 None => {
                     todo!();
@@ -112,9 +112,9 @@ fn main() {
 
     simulation(arg_steps, &mut customer_data, 4);
 
-    payment_method_sensitivity(&mut customer_data);
+    //payment_method_sensitivity(&mut customer_data);
 
-    /*let mut customer_data_5s: HashMap<u64, (u8, f64, f64, f64)> = HashMap::new();
+    let mut customer_data_5s: HashMap<u64, (u8, f64, f64, f64)> = HashMap::new();
     simulation(arg_steps, &mut customer_data_5s, 5);
 
     // Gráficos
@@ -125,5 +125,5 @@ fn main() {
     four_vs_five_stations(&mut customer_data, &mut customer_data_5s);
 
     // promedio de tiempo de espera en cola por dia
-    queue_avg_waittime(&mut customer_data); */
+    queue_avg_waittime(&mut customer_data);
 }

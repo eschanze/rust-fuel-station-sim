@@ -141,17 +141,17 @@ pub fn queue_avg_waittime(customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>)
 pub fn payment_method_sensitivity(customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>) {
     let mut averages: HashMap<u8, f64> = HashMap::new();
     let mut counts: HashMap<u8, usize> = HashMap::new();
-    
+
     // Iterate over the customer_data HashMap
     for (_, &(payment_method, _, _, last_element)) in customer_data.iter() {
         // Update the sum and count for the payment method
         let sum = averages.entry(payment_method).or_insert(0.0);
         let count = counts.entry(payment_method).or_insert(0);
-    
+
         *sum += last_element;
         *count += 1;
     }
-    
+
     // Print the averages for each payment method
     for (payment_method, sum) in averages.iter() {
         let count = *counts.get(payment_method).unwrap();
@@ -164,3 +164,5 @@ pub fn payment_method_sensitivity(customer_data: &mut HashMap<u64, (u8, f64, f64
         }
     }
 }
+
+pub fn lambda_avg(customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>) {}

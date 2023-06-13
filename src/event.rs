@@ -8,7 +8,12 @@ pub struct Event {
 }
 
 impl Event {
-    pub fn new(id: u64, customer: Customer, scheduled_time: f64, chosen_queue: Option<u64>) -> Event {
+    pub fn new(
+        id: u64,
+        customer: Customer,
+        scheduled_time: f64,
+        chosen_queue: Option<u64>,
+    ) -> Event {
         Event {
             id,
             customer,
@@ -37,10 +42,7 @@ impl Event {
         format!(
             //{:<8.2} for self.scheduled_time
             "{:<8} | {:<10} | {:<8} | {:<4}",
-            scheduled_time_format,
-            event_type,
-            self.customer.id,
-            chosen_queue_str
+            scheduled_time_format, event_type, self.customer.id, chosen_queue_str
         )
     }
 }
