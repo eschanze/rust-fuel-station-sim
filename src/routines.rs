@@ -162,8 +162,8 @@ pub fn arrive_routine(
     let exp_distr = Exp::new(10.0 / arrival_rate).unwrap();
     let next_arrival_time = rand::thread_rng().sample(exp_distr);
 
-    println!("Current arrival rate {} -> {}", *sim_time, arrival_rate);
-    println!("Next arrival in {}", next_arrival_time);
+    //println!("Current arrival rate {} -> {}", *sim_time, arrival_rate);
+    //println!("Next arrival in {}", next_arrival_time);
 
     let queue_event = Event::new(1, e.customer.clone(), *sim_time, None);
 
@@ -216,19 +216,20 @@ pub fn refuel_routine(event_queue: &mut EventQueue, sim_time: &mut f64, e: &mut 
 
 pub fn payment_routine(event_queue: &mut EventQueue, sim_time: &mut f64, e: &mut Event) {
     let payment_time: f64;
+    let factor: f64 = 1.0;
     match e.customer.payment_method {
         PaymentMethod::Efectivo => {
-            payment_time = Normal::new(0.875, 0.1)
+            payment_time = Normal::new(0.875 * factor, 0.1)
                 .unwrap()
                 .sample(&mut rand::thread_rng())
         }
         PaymentMethod::Tarjeta => {
-            payment_time = Normal::new(0.425, 0.075)
+            payment_time = Normal::new(0.425 * factor, 0.075)
                 .unwrap()
                 .sample(&mut rand::thread_rng())
         }
         PaymentMethod::CopecApp => {
-            payment_time = Normal::new(0.275, 0.055)
+            payment_time = Normal::new(0.275 * factor, 0.055)
                 .unwrap()
                 .sample(&mut rand::thread_rng())
         }
