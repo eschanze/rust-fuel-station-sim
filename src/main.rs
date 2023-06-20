@@ -17,7 +17,7 @@ use std::{collections::HashMap, env};
 
 fn simulation(
     _steps: i32,
-    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>,
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64, u8)>,
     fuel_station_length: usize,
 ) {
     let mut event_queue = EventQueue::new();
@@ -29,10 +29,10 @@ fn simulation(
 
     let initial_event = Event::new(0, Customer::new(0, 0.0), 0.0, None);
     event_queue.add(initial_event);
-    println!(
-        "{:<8} | {:<10} | {:<8} | {:<4} | {:<10}",
-        "TIEMPO", "EVENTO", "CLIENTE", "COLA", "ESTADO COLA"
-    );
+    // println!(
+    //     "{:<8} | {:<10} | {:<8} | {:<4} | {:<10}",
+    //     "TIEMPO", "EVENTO", "CLIENTE", "COLA", "ESTADO COLA"
+    // );
 
     let sec = timeit_loops!(1, {
         for _i in 0.._steps {
@@ -78,11 +78,11 @@ fn simulation(
                             todo!();
                         }
                     }
-                    println!(
-                        "{:<8} | {}",
-                        e.pretty_print(),
-                        format_customer_queues(&customer_queues)
-                    );
+                    // println!(
+                    //     "{:<8} | {}",
+                    //     e.pretty_print(),
+                    //     format_customer_queues(&customer_queues)
+                    // );
                 }
                 None => {
                     todo!();
@@ -106,15 +106,15 @@ fn main() {
     };
 
     // HashMap con la información para hacer los gráficos.
-    // El format del HashMap es key: (int, float, float, float)
-    // Esto es ID: (Método de pago, tiempo de llegada (dentro de la simulación), tiempo esperando en cola, tiempo total de atención al momento de salir)
-    let mut customer_data: HashMap<u64, (u8, f64, f64, f64)> = HashMap::new();
+    // El format del HashMap es key: (int, float, float, float, int)
+    // Esto es ID: (Método de pago, tiempo de llegada (dentro de la simulación), tiempo esperando en cola, tiempo total de atención al momento de salir, si salió o no (1 o 0))
+    let mut customer_data: HashMap<u64, (u8, f64, f64, f64, u8)> = HashMap::new();
 
     simulation(arg_steps, &mut customer_data, 4);
 
     //payment_method_sensitivity(&mut customer_data);
 
-    let mut customer_data_5s: HashMap<u64, (u8, f64, f64, f64)> = HashMap::new();
+    let mut customer_data_5s: HashMap<u64, (u8, f64, f64, f64, u8)> = HashMap::new();
     simulation(arg_steps, &mut customer_data_5s, 5);
 
     // Gráficos

@@ -113,14 +113,15 @@ fn normalize(minutes: u16) -> f64 {
 fn beta_distr(x: f64) -> f64 {
     let numerator = x.powf(7.0) * (1.0 - x).powf(5.075);
     let denominator = 0.0000908345394559;
-    numerator / denominator + 4.0
+    numerator / denominator + 0.0000001
 }
 
 fn update_value(
-    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>,
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64, u8)>,
     id: u64,
     index: usize,
     value: f64,
+    departure_key: u64,
 ) -> Result<(), String> {
     if let Some(tuple) = customer_data.get_mut(&id) {
         match index {
@@ -128,6 +129,7 @@ fn update_value(
             1 => tuple.1 = value,
             2 => tuple.2 = value,
             3 => tuple.3 = value,
+            4 => tuple.4 = value as u8,
             _ => {
                 return Err(String::from("Invalid index"));
             }
@@ -155,7 +157,7 @@ pub fn arrive_routine(
     sim_time: &mut f64,
     e: &mut Event,
     customer_count: &mut u64,
-    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>,
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64, u8)>,
 ) {
     *customer_count += 1;
     let arrival_rate = beta_distr(normalize(*sim_time as u16));
@@ -168,9 +170,9 @@ pub fn arrive_routine(
     let queue_event = Event::new(1, e.customer.clone(), *sim_time, None);
 
     match e.customer.payment_method {
-        PaymentMethod::Efectivo => customer_data.insert(e.customer.id, (0, *sim_time, 0.0, 0.0)),
-        PaymentMethod::Tarjeta => customer_data.insert(e.customer.id, (1, *sim_time, 0.0, 0.0)),
-        PaymentMethod::CopecApp => customer_data.insert(e.customer.id, (2, *sim_time, 0.0, 0.0)),
+        PaymentMethod::Efectivo => customer_data.insert(e.customer.id, (0, *sim_time, 0.0, 0.0, 0)),
+        PaymentMethod::Tarjeta => customer_data.insert(e.customer.id, (1, *sim_time, 0.0, 0.0, 0)),
+        PaymentMethod::CopecApp => customer_data.insert(e.customer.id, (2, *sim_time, 0.0, 0.0, 0)),
     };
 
     event_queue.add(queue_event);
@@ -186,7 +188,7 @@ pub fn queue_routine(
     e: &mut Event,
     fuel_stations: &mut [i64],
     customer_queues: &mut Vec<Vec<Customer>>,
-    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>,
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64, u8)>,
 ) {
     let (available_station, idx) = any_available(&fuel_stations);
     if available_station {
@@ -198,7 +200,7 @@ pub fn queue_routine(
     } else {
         let queue_index = get_shortest_or_random_index(customer_queues);
         customer_queues[queue_index].push(e.customer.clone());
-        let _ = update_value(customer_data, e.customer.id, 2, *sim_time);
+        let _ = update_value(customer_data, e.customer.id, 2, *sim_time, 0);
     }
 }
 
@@ -250,7 +252,7 @@ pub fn departure_routine(
     e: &mut Event,
     fuel_stations: &mut [i64],
     customer_queues: &mut Vec<Vec<Customer>>,
-    customer_data: &mut HashMap<u64, (u8, f64, f64, f64)>,
+    customer_data: &mut HashMap<u64, (u8, f64, f64, f64, u8)>,
 ) {
     e.customer.total_time = *sim_time - e.customer.arrive_time;
     let _ = update_value(
@@ -258,6 +260,7 @@ pub fn departure_routine(
         e.customer.id,
         3,
         *sim_time - e.customer.arrive_time,
+        1,
     );
     if let Some(queue) = e.chosen_queue {
         fuel_stations[queue as usize] = 0;
@@ -269,9 +272,12 @@ pub fn departure_routine(
                 customer.id,
                 2,
                 *sim_time - customer.arrive_time,
+                0,
             );
         }
     }
+    // i need to update the last value of customer_data to 1
+
     /* println!(
         "Customer {} que pagó con {:?} terminó después de {:.2} segs.",
         e.customer.id,
