@@ -113,15 +113,14 @@ fn normalize(minutes: u16) -> f64 {
 fn beta_distr(x: f64) -> f64 {
     let numerator = x.powf(7.0) * (1.0 - x).powf(5.075);
     let denominator = 0.0000908345394559;
-    numerator / denominator + 0.0000001
+    numerator / denominator + 0.1
 }
 
 fn update_value(
     customer_data: &mut HashMap<u64, (u8, f64, f64, f64, u8)>,
     id: u64,
     index: usize,
-    value: f64,
-    departure_key: u64,
+    value: f64
 ) -> Result<(), String> {
     if let Some(tuple) = customer_data.get_mut(&id) {
         match index {
@@ -200,7 +199,7 @@ pub fn queue_routine(
     } else {
         let queue_index = get_shortest_or_random_index(customer_queues);
         customer_queues[queue_index].push(e.customer.clone());
-        let _ = update_value(customer_data, e.customer.id, 2, *sim_time, 0);
+        let _ = update_value(customer_data, e.customer.id, 2, *sim_time);
     }
 }
 
@@ -259,8 +258,13 @@ pub fn departure_routine(
         customer_data,
         e.customer.id,
         3,
-        *sim_time - e.customer.arrive_time,
-        1,
+        *sim_time - e.customer.arrive_time
+    );
+    let _ = update_value(
+        customer_data,
+        e.customer.id,
+        4,
+        1.0
     );
     if let Some(queue) = e.chosen_queue {
         fuel_stations[queue as usize] = 0;
@@ -271,8 +275,7 @@ pub fn departure_routine(
                 customer_data,
                 customer.id,
                 2,
-                *sim_time - customer.arrive_time,
-                0,
+                *sim_time - customer.arrive_time
             );
         }
     }

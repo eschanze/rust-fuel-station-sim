@@ -78,11 +78,11 @@ fn simulation(
                             todo!();
                         }
                     }
-                    // println!(
-                    //     "{:<8} | {}",
-                    //     e.pretty_print(),
-                    //     format_customer_queues(&customer_queues)
-                    // );
+                    /*println!(
+                        "{:<8} | {}",
+                        e.pretty_print(),
+                        format_customer_queues(&customer_queues)
+                    );*/
                 }
                 None => {
                     todo!();
@@ -112,7 +112,15 @@ fn main() {
 
     simulation(arg_steps, &mut customer_data, 4);
 
-    //payment_method_sensitivity(&mut customer_data);
+    /*if let Some(max) = customer_data.keys().max() {
+        for i in 0..=*max {
+            if let Some(tuple) = customer_data.get(&i) {
+                println!("ID: {}, Value: {:?}", i, tuple);
+            }
+        }
+    }*/
+
+    payment_method_sensitivity(&mut customer_data);
 
     let mut customer_data_5s: HashMap<u64, (u8, f64, f64, f64, u8)> = HashMap::new();
     simulation(arg_steps, &mut customer_data_5s, 5);

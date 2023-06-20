@@ -21,6 +21,9 @@ pub fn payment_method_avg_time(customer_data: &mut HashMap<u64, (u8, f64, f64, f
     let mut count_2: f64 = 0.0;
 
     for (_, &(payment_method, _, _, time_total, departure_key)) in customer_data.iter() {
+        if departure_key == 0 {
+            continue;
+        }
         match payment_method {
             0 => {
                 sum_0 += time_total;
@@ -76,7 +79,7 @@ pub fn four_vs_five_stations(
     let mut count1: f64 = 0.0;
 
     for (_, &(_, _, _, time_total, departure_key)) in customer_data.iter() {
-        if (departure_key == 0) {
+        if departure_key == 0 {
             continue;
         }
         sum1 += time_total;
@@ -96,7 +99,7 @@ pub fn four_vs_five_stations(
 
     // Iterate over the time steps in customer_data2 and update the sum and count
     for (_, &(_, _, _, time_total, departure_key)) in customer_data_5s.iter() {
-        if (departure_key == 0) {
+        if departure_key == 0 {
             continue;
         }
         sum2 += time_total;
@@ -124,13 +127,16 @@ pub fn four_vs_five_stations(
 pub fn queue_avg_waittime(customer_data: &mut HashMap<u64, (u8, f64, f64, f64, u8)>) {
     // Promedio tiempo de simulación vs tiempo promedio espera cola
 
-    let mut time_values: Vec<f64> = Vec::new();
+    let mut time_values: Vec<i64> = Vec::new();
     let mut avg_values: Vec<f64> = Vec::new();
 
     let mut wait_time_sum: f64 = 0.0;
     let mut count: f64 = 0.0;
 
     for (_, &(_, time, wait_time, _, departure_key)) in customer_data.iter() {
+        if departure_key == 0 {
+            continue;
+        }
         // if (departure_key == 1) {
         //     wait_time_sum += wait_time;
         //     count += 1.0;
@@ -141,7 +147,7 @@ pub fn queue_avg_waittime(customer_data: &mut HashMap<u64, (u8, f64, f64, f64, u
         wait_time_sum += wait_time;
         count += 1.0;
 
-        time_values.push(time);
+        time_values.push((time * 100.0) as i64);
         avg_values.push(wait_time_sum / count);
     }
 
@@ -157,6 +163,9 @@ pub fn payment_method_sensitivity(customer_data: &mut HashMap<u64, (u8, f64, f64
 
     // Iterate over the customer_data HashMap
     for (_, &(payment_method, _, _, last_element, departure_key)) in customer_data.iter() {
+        if departure_key == 0 {
+            continue;
+        }
         // Update the sum and count for the payment method
         let sum = averages.entry(payment_method).or_insert(0.0);
         let count = counts.entry(payment_method).or_insert(0);
